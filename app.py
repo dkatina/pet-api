@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from flask_marshmallow import Marshmallow
 from marshmallow import ValidationError
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
-from sqlalchemy import ForeignKey, Table, String, Column,select
+from sqlalchemy import ForeignKey, Table, String, Column,select, Boolean
 from typing import List
 
 #Initialize flask app
@@ -49,6 +49,15 @@ class Pet(Base):
 
     #One-to-Many
     owners: Mapped[List["User"]] = relationship(secondary=user_pet, back_populates="pets")
+
+class HouseHold(Base):
+    __tablename__="households"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    address: Mapped[str] = mapped_column(String(255))
+    residence_type: Mapped[str] = mapped_column(String(100))
+    fenced_yard: Mapped[bool] = mapped_column(Boolean())
+    grass_access: Mapped[bool] = mapped_column(Boolean())
 
 
 
