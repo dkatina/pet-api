@@ -36,9 +36,12 @@ class User(Base):
     id: Mapped[int] = mapped_column(primary_key=True)
     name: Mapped[str] = mapped_column(String(50))
     email: Mapped[str] = mapped_column(String(200))
+    home_id: Mapped[int] = mapped_column(ForeignKey('house_holds.id'))
 
     #One-to-Many
     pets: Mapped[List["Pet"]] = relationship(secondary=user_pet, back_populates="owners")
+    #One-to-One
+    house_hold: Mapped['HouseHold'] = relationship(back_populates="users")
 
 class Pet(Base):
     __tablename__ = "pets"
@@ -59,6 +62,10 @@ class HouseHold(Base):
     fenced_yard: Mapped[bool] = mapped_column(Boolean())
     grass_access: Mapped[bool] = mapped_column(Boolean())
 
+    #One-to-Many
+    users: Mapped[List["User"]] = relationship(back_populates="house_hold")
+
+
 
 
 #========== Schemas ==========
@@ -72,10 +79,16 @@ class PetSchema(ma.SQLAlchemyAutoSchema):
     class Meta:
         model = Pet
 
+class HouseHoldSchema(ma.SQLAlchemyAutoSchema):
+    class Meta:
+        model = HouseHold
+
 user_schema = UserSchema()
 users_schema = UserSchema(many=True) #Allows for the serialization of a List of User objects
 pet_schema = PetSchema()
 pets_schema = PetSchema(many=True)
+house_hold_schema = HouseHoldSchema()
+house_holds_schema = HouseHoldSchema(many=True)
 
 
 #=============== Routes ================
@@ -184,6 +197,33 @@ def add_pets(user_id):
 def my_pets(user_id):
     user = db.session.get(User, user_id)
     return pets_schema.jsonify(user.pets), 200
+
+
+#Create HouseHold
+@app.route('/house_holds', methods=['POST'])
+def create_house_hold():
+    try:
+        house_hold_data = house_hold_schema.load(request.json)
+    except ValidationError as e:
+        return jsonify(e.messages), 400
+    
+    new_house_hold = HouseHold(
+        address=house_hold_data['address'], 
+        residence_type=house_hold_data['residence_type'],
+        fenced_yard= house_hold_data['fenced_yard'],
+        grass_access=house_hold_data['grass_access'])
+    db.session.add(new_house_hold)
+    db.session.commit()
+
+    return house_hold_schema.jsonify(new_house_hold), 201
+
+#READ HouseHolds
+@app.route('/house_holds', methods=['GET'])
+def get_house_holds():
+    query = select(HouseHold)
+    house_holds = db.session.execute(query).scalars().all()
+
+    return house_holds_schema.jsonify(house_holds), 200
     
 
 
